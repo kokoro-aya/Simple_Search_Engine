@@ -8,8 +8,27 @@ enum class States {
 
 class Database {
     private val db = mutableListOf<String>()
+    private val idx = mutableMapOf<String, MutableList<Int>>()
     fun add(content: String) = db.add(content)
-    fun retrieve(pattern: String) = db.filter { it.toLowerCase().contains(pattern.toLowerCase()) }
+
+    fun construct() {
+        val set = mutableSetOf<String>()
+        db.flatMap { it.split(" ") }.forEach { set.add(it) }
+        set.forEach {
+            for (i in db.indices) {
+                if (db[i].contains(it)) {
+                    if (idx.containsKey(it.toLowerCase())) {
+                        idx[it.toLowerCase()]?.add(i)
+                    } else {
+                        idx[it.toLowerCase()] = mutableListOf(i)
+                    }
+                }
+            }
+        }
+    }
+
+    fun retrieve(pattern: String) = idx[pattern.toLowerCase()]
+    fun get(id: Int) = db[id]
     fun retrieveAll() = db
 }
 
@@ -40,10 +59,10 @@ class Program(val db: Database) {
                 println("Enter a name or email to search all suitable people.")
                 val pattern = readLine()!!
                 val result = db.retrieve(pattern)
-                if (result.isEmpty())
+                if (result.isNullOrEmpty())
                     println("No matching people found.")
                 else
-                    result.forEach { println(it) }
+                    result.forEach { println(db.get(it)) }
                 state = States.MENU
             }
             States.LIST -> {
@@ -67,12 +86,12 @@ fun main(args: Array<String>) {
 //    for (i in 1 .. size) {
 //        db.add(readLine()!!)
 //    }
-    val fileDir = args[1]
     val people = File(args[1]).readLines()
     val db = Database()
     for (p in people) {
         db.add(p)
     }
+    db.construct()
     val program = Program(db)
     while (program.state != States.EXIT) {
         program.process()
