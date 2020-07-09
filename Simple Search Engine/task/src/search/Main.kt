@@ -1,5 +1,7 @@
 package search
 
+import java.io.File
+
 enum class States {
     MENU, FIND, LIST, EXIT
 }
@@ -57,13 +59,19 @@ class Program(val db: Database) {
 }
 
 
-fun main() {
-    println("Enter the number of people:")
-    val size = readLine()!!.toInt()
-    println("Enter all people:")
+fun main(args: Array<String>) {
+//    println("Enter the number of people:")
+//    val size = readLine()!!.toInt()
+//    println("Enter all people:")
+//    val db = Database()
+//    for (i in 1 .. size) {
+//        db.add(readLine()!!)
+//    }
+    val fileDir = args[1]
+    val people = File(args[1]).readLines()
     val db = Database()
-    for (i in 1 .. size) {
-        db.add(readLine()!!)
+    for (p in people) {
+        db.add(p)
     }
     val program = Program(db)
     while (program.state != States.EXIT) {
