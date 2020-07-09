@@ -6,10 +6,16 @@ enum class States {
     MENU, FIND, LIST, EXIT
 }
 
+enum class Match {
+    ALL, ANY, NONE
+}
+
 class Database {
     private val db = mutableListOf<String>()
     private val idx = mutableMapOf<String, MutableList<Int>>()
     fun add(content: String) = db.add(content)
+
+    val size = { db.size }
 
     fun construct() {
         val set = mutableSetOf<String>()
@@ -27,9 +33,44 @@ class Database {
         }
     }
 
-    fun retrieve(pattern: String) = idx[pattern.toLowerCase()]
+    fun retrieve(pattern: String) = idx[pattern.toLowerCase()]?.toList() ?: listOf()
     fun get(id: Int) = db[id]
     fun retrieveAll() = db
+}
+
+fun List<List<Int>>.flattenMatchAny(): List<Int> {
+    val ret = mutableListOf<Int>()
+    this.forEach {
+        it.forEach {
+            if (!ret.contains(it)) {
+                ret.add(it)
+            }
+        }
+    }
+    return ret.toList()
+}
+fun List<List<Int>>.flattenMatchAll(): List<Int> {
+    val lis = this.flattenMatchAny()
+    val ret = mutableListOf<Int>()
+    lis.forEach {
+        var cnt = 0
+        for (li in this) {
+            if (li.contains(it))
+                cnt += 1
+        }
+        if (cnt == this.size)
+            ret.add(it)
+    }
+    return ret.toList()
+}
+fun List<List<Int>>.flattenNotAppear(count: Int): List<Int> {
+    val lis = this.flattenMatchAny()
+    val ret = mutableListOf<Int>()
+    for (i in 0 until count) {
+        if (!lis.contains(i))
+            ret.add(i)
+    }
+    return ret.toList()
 }
 
 class Program(val db: Database) {
@@ -56,13 +97,26 @@ class Program(val db: Database) {
                 }
             }
             States.FIND -> {
+                println("Select a matching strategy: ALL, ANY, NONE")
+                val strat: Match = when (readLine()!!.toLowerCase()) {
+                    "any" -> Match.ANY
+                    "all" -> Match.ALL
+                    "none" -> Match.NONE
+                    else -> throw IllegalArgumentException()
+                }
                 println("Enter a name or email to search all suitable people.")
-                val pattern = readLine()!!
-                val result = db.retrieve(pattern)
-                if (result.isNullOrEmpty())
+                val patterns = readLine()!!.split(" ")
+                val answer = patterns.map { db.retrieve(it) }
+                if (answer.isNullOrEmpty())
                     println("No matching people found.")
-                else
+                else {
+                    val result = when (strat) {
+                        Match.ANY -> answer.flattenMatchAny()
+                        Match.ALL -> answer.flattenMatchAll()
+                        Match.NONE -> answer.flattenNotAppear(db.size())
+                    }
                     result.forEach { println(db.get(it)) }
+                }
                 state = States.MENU
             }
             States.LIST -> {
